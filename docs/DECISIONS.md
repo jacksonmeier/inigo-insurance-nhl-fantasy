@@ -62,3 +62,23 @@ The spec says to ask before making product decisions it doesn't cover. These wer
 | Decision | Where |
 |---|---|
 | Owners can sign in with a password as well as an emailed link. Emailed links need an email service; passwords work anywhere, including on a laptop with no email. | `src/pages/LoginPage.tsx` |
+
+## Counter-offers, season history, Tonight, player info, watchlist
+
+Added after the draft. These were built to the one-line descriptions picked from a list, so the details below were decided without asking.
+
+| Decision | Where |
+|---|---|
+| A counter-offer closes the offer it answers (it shows as countered) and goes back the other way as a new offer. That one can be accepted, rejected, withdrawn, or countered again. | `counter_trade` in `supabase/migrations/20260928000000_trade_counters.sql` |
+| Countering with exactly the trade you were offered is refused: accept it instead. | same |
+| Offers and counter-offers stay out of the activity feed, as offers always have. Only agreed trades are listed. | same |
+| The race chart adds the commissioner's point adjustments on the day they were made, so each line ends at the team's standings total. | `team_daily_points` in `20260928000200_history_tonight_player_info.sql` |
+| Nightly and weekly winners count points from games only, not adjustments. A tie counts as a win for every team in it, and a night where nobody scored more than zero has no winner. | `src/lib/history.ts` |
+| Weeks run Monday to Sunday, the same as the week's top scorer. | same |
+| Each team keeps the same chart colour all season: colours follow the team, not its place. | `teamColors` in `src/lib/history.ts` |
+| Once the draft is complete, the top-bar button that went to the draft room goes to Tonight instead, with a red dot while games are live. The draft room is still reachable from Account. | `src/components/Layout.tsx` |
+| A player dropped after puck drop stays on his old team's Tonight list for that night, because his points still count there. A player added after puck drop is listed on his new team, marked as not counting. | `tonight_lines` |
+| "Games in the next 7 days" counts games from today through the next six days that haven't started. A game in progress doesn't count, since a player added now wouldn't score in it. | `src/pages/PlayersPage.tsx`, `src/components/PlayerSheet.tsx` |
+| Each team's watchlist is private. Other owners and the commissioner can't see it. | `20260928000100_watchlist.sql` |
+| Owners watching a player are alerted when he's dropped onto waivers, clears waivers, or is released straight to free agency (a temporary IR replacement let go, or a commissioner removal). Not when he's claimed, traded, or moved on or off IR. | same |
+| You can't watch your own players, and a player leaves your watchlist once your team gets him. | same |

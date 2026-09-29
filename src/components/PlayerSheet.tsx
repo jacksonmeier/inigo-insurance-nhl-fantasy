@@ -1,11 +1,13 @@
 import { STAT_LABELS } from '@shared/scoring.ts'
 import type { ReactNode } from 'react'
-import { fetchGameLog, fetchPlayer } from '../lib/api.ts'
-import { formatGameDate, isLive, points, timeLeft } from '../lib/format.ts'
-import { useNow } from '../lib/hooks.ts'
+import { fetchGameLog, fetchPlayer, fetchSeasonTotals, fetchTeamSchedule } from '../lib/api.ts'
+import { formatGameDate, formatGameDay, formatTime, isLive, periodLabel, points, timeLeft } from '../lib/format.ts'
+import { useAction, useNow } from '../lib/hooks.ts'
 import { useLeague } from '../lib/league.tsx'
 import { useLive } from '../lib/live.ts'
-import type { GameLogRow, PoolPlayer } from '../lib/types.ts'
+import { call } from '../lib/supabase.ts'
+import type { GameLogRow, PoolPlayer, SeasonTotals, UpcomingGame } from '../lib/types.ts'
+import { StarIcon } from './Icons.tsx'
 import PlayerActions from './PlayerActions.tsx'
 import Sheet from './Sheet.tsx'
 import { Avatar, InjuryTag, Loaded, PositionTag } from './ui.tsx'
@@ -92,6 +94,142 @@ function GameLog({ games, isGoalie, teamName }: {
   )
 }
 
+/** Adds the player to the owner's watchlist, or takes him off. */
+function WatchButton({ player }: { player: PoolPlayer }) {
+  const league = useLeague()
+  const { run, busy } = useAction()
+  if (!league.myTeamId || player.fantasy_team_id === league.myTeamId) return null
+
+  const watching = league.watchlist.has(player.id)
+  const heads = player.fantasy_team_id
+    ? " You'll get an alert if he's dropped."
+    : player.waiver_id
+      ? " You'll get an alert if he clears waivers."
+      : ''
+
+  return (
+    <button
+      type="button"
+      className={watching ? 'icon-button watch on' : 'icon-button watch'}
+      aria-pressed={watching}
+      aria-label={watching ? `Stop watching ${player.full_name}` : `Watch ${player.full_name}`}
+      title={watching ? 'On your watchlist' : 'Add to your watchlist'}
+      disabled={busy}
+      onClick={() =>
+        run(
+          () => call(watching ? 'unwatch_player' : 'watch_player', { p_player_id: player.id }),
+          watching ? `${player.full_name} is off your watchlist.` : `Watching ${player.full_name}.${heads}`,
+        )
+      }
+    >
+      <StarIcon filled={watching} />
+    </button>
+  )
+}
+
+/** His team's next few games, and how many fall in the coming week. */
+function Schedule({ team }: { team: string }) {
+  const games = useLive(() => fetchTeamSchedule(team, 8), [team], ['games'])
+
+  const opponent = (game: UpcomingGame) =>
+    game.home_team === team ? `vs ${game.away_team}` : `@ ${game.home_team}`
+  // The day is in the first column, so only the time here.
+  const when = (game: UpcomingGame) =>
+    isLive(game.game_state) ? `Live · ${periodLabel(game.period)}` : formatTime(game.start_time_utc)
+
+  return (
+    <>
+      <h2>Coming up</h2>
+      <Loaded live={games}>
+        {(list) => {
+          if (list.length === 0) return <p className="muted">No games left in the regular season.</p>
+          const week = list.filter((game) => game.days_away < 7 && !isLive(game.game_state)).length
+          return (
+            <>
+              <p className="fine muted" style={{ margin: '0 4px 8px' }}>
+                {week} {week === 1 ? 'game' : 'games'} in the next 7 days.
+              </p>
+              <div className="card flush" style={{ margin: 0 }}>
+                {list.slice(0, 5).map((game) => (
+                  <div key={game.id} className="list-row schedule-row">
+                    <span className="grow">{game.days_away === 0 ? 'Today' : formatGameDay(game.game_date)}</span>
+                    <span className="schedule-opponent">{opponent(game)}</span>
+                    <span className={isLive(game.game_state) ? 'schedule-time down' : 'schedule-time muted'}>
+                      {when(game)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )
+        }}
+      </Loaded>
+    </>
+  )
+}
+
+type StatRow = [label: string, value: (totals: SeasonTotals) => string | number]
+
+const SKATER_STATS: StatRow[] = [
+  ['Games', (t) => t.games_played],
+  ['Goals', (t) => t.goals],
+  ['Assists', (t) => t.assists],
+  ['Points', (t) => t.goals + t.assists],
+  ['Power play points', (t) => t.power_play_points],
+  ['Shorthanded points', (t) => t.shorthanded_points],
+  ['Shots on goal', (t) => t.shots],
+  ['Hits', (t) => t.hits],
+  ['Blocked shots', (t) => t.blocked_shots],
+]
+
+const GOALIE_STATS: StatRow[] = [
+  ['Games', (t) => t.games_played],
+  ['Wins', (t) => t.wins],
+  ['Saves', (t) => t.saves],
+  ['Goals against', (t) => t.goals_against],
+  ['Save percentage', (t) =>
+    t.saves + t.goals_against > 0 ? (t.saves / (t.saves + t.goals_against)).toFixed(3).replace(/^0/, '') : '-'],
+  ['Shutouts', (t) => t.shutouts],
+]
+
+/** This season's totals beside last season's. */
+function SeasonStats({ player, season }: { player: PoolPlayer; season: number }) {
+  const totals = useLive(() => fetchSeasonTotals(player.id, season), [player.id, season], ['player_game_points'])
+  const rows = player.position_group === 'G' ? GOALIE_STATS : SKATER_STATS
+
+  return (
+    <>
+      <h2>Season stats</h2>
+      <Loaded live={totals}>
+        {({ current, last }) =>
+          !current && !last ? (
+            <p className="muted">No NHL games yet.</p>
+          ) : (
+            <table className="season-stats">
+              <thead>
+                <tr>
+                  <th scope="col"><span className="sr-only">Stat</span></th>
+                  <th scope="col">This season</th>
+                  <th scope="col">Last season</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(([label, value]) => (
+                  <tr key={label}>
+                    <th scope="row">{label}</th>
+                    <td>{current ? value(current) : '-'}</td>
+                    <td>{last ? value(last) : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
+        }
+      </Loaded>
+    </>
+  )
+}
+
 /** Everything about one player: status, points, recent games, and what you can do with him. */
 export default function PlayerSheet({ playerId, onClose, actions }: {
   playerId: number
@@ -135,6 +273,7 @@ export default function PlayerSheet({ playerId, onClose, actions }: {
                     {whereHeIs(p, league.teamName, now)}
                   </div>
                 </div>
+                <WatchButton player={p} />
               </div>
 
               {p.injury_status && (
@@ -161,6 +300,9 @@ export default function PlayerSheet({ playerId, onClose, actions }: {
               </div>
 
               {actions ? actions(p) : <PlayerActions player={p} onDone={onClose} />}
+
+              {p.nhl_team && <Schedule team={p.nhl_team} />}
+              {league.season && <SeasonStats player={p} season={league.season} />}
 
               <h2>Recent games</h2>
               <Loaded live={log}>

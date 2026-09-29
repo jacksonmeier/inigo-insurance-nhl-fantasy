@@ -1,18 +1,22 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { StarIcon } from '../components/Icons.tsx'
 import PlayerActions from '../components/PlayerActions.tsx'
 import PlayerLine from '../components/PlayerLine.tsx'
 import PlayerSheet from '../components/PlayerSheet.tsx'
 import { Chips, Empty, Loaded } from '../components/ui.tsx'
-import { fetchPlayers, fetchWaivers, PLAYERS_PAGE_SIZE, type PlayerSort } from '../lib/api.ts'
-import { points, timeLeft } from '../lib/format.ts'
+import { fetchPlayers, fetchWaivers, fetchWeekAhead, PLAYERS_PAGE_SIZE, type PlayerSort } from '../lib/api.ts'
+import { isLive, points, timeLeft } from '../lib/format.ts'
 import { useDebounced, useNow } from '../lib/hooks.ts'
 import { useLeague } from '../lib/league.tsx'
 import { useLive } from '../lib/live.ts'
 import { describeNeeds, openSlots } from '../lib/rules.ts'
 import type { Availability, PoolPlayer, PositionGroup } from '../lib/types.ts'
 
-type Show = 'available' | Availability | null
+type Show = 'available' | Availability | 'watching' | null
+
+const SHOWS: Exclude<Show, null>[] = ['available', 'waivers', 'rostered', 'free_agent', 'watching']
+const isShow = (value: string | null): value is Exclude<Show, null> => SHOWS.includes(value as Exclude<Show, null>)
 
 const POOL_TABLES = ['roster_entries', 'waivers', 'waiver_claims', 'player_injuries', 'player_game_points', 'players']
 
@@ -24,7 +28,11 @@ export default function PlayersPage() {
   const group = isGroup(params.get('group')) ? (params.get('group') as PositionGroup) : null
 
   const [search, setSearch] = useState('')
-  const [show, setShow] = useState<Show>('available')
+  // A link can ask for a list, e.g. an alert about the watchlist.
+  const [show, setShow] = useState<Show>(() => {
+    const asked = params.get('show')
+    return isShow(asked) ? asked : 'available'
+  })
   // Before any games are played, last season is the only thing to go on.
   const [sort, setSort] = useState<PlayerSort | null>(null)
   const [limit, setLimit] = useState(PLAYERS_PAGE_SIZE)
@@ -37,11 +45,26 @@ export default function PlayersPage() {
   const seasonStarted = Number(probe.data?.[0]?.season_points ?? 0) > 0
   const sortBy: PlayerSort = sort ?? (seasonStarted ? 'season' : 'last_season')
 
+  const watchIds = useMemo(() => [...league.watchlist].sort((a, b) => a - b), [league.watchlist])
   const players = useLive(
-    () => fetchPlayers({ search: term, group, availability: show, sort: sortBy, limit }),
-    [term, group, show, sortBy, limit],
+    () =>
+      show === 'watching'
+        ? fetchPlayers({ search: term, group, ids: watchIds, sort: sortBy, limit })
+        : fetchPlayers({ search: term, group, availability: show, sort: sortBy, limit }),
+    [term, group, show, sortBy, limit, watchIds.join(',')],
     POOL_TABLES,
   )
+
+  // Games each NHL team has left in the next week, for choosing between free agents.
+  const week = useLive(fetchWeekAhead, [], ['games'])
+  const weekGames = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const game of week.data ?? []) {
+      if (isLive(game.game_state)) continue
+      for (const team of [game.home_team, game.away_team]) counts.set(team, (counts.get(team) ?? 0) + 1)
+    }
+    return counts
+  }, [week.data])
 
   const setGroup = (next: PositionGroup | null) => {
     setLimit(PLAYERS_PAGE_SIZE)
@@ -56,6 +79,12 @@ export default function PlayersPage() {
     }
     if (player.waiver_expires_at) return <span>Waivers, {timeLeft(player.waiver_expires_at, now)} left</span>
     return null
+  }
+
+  const gamesAhead = (player: PoolPlayer) => {
+    if (!player.nhl_team || !week.data) return null
+    const count = weekGames.get(player.nhl_team) ?? 0
+    return <span className="dim">{count} {count === 1 ? 'game' : 'games'} in 7 days</span>
   }
 
   return (
@@ -113,6 +142,7 @@ export default function PlayersPage() {
             { value: 'waivers', label: 'Waivers' },
             { value: 'rostered', label: 'On a team' },
             { value: 'all', label: 'Everyone' },
+            ...(league.myTeamId ? [{ value: 'watching' as const, label: 'Watching' }] : []),
           ]}
         />
         <Chips<PlayerSort>
@@ -134,13 +164,32 @@ export default function PlayersPage() {
               <span>{list.length >= limit ? `Top ${list.length}` : `${list.length} ${list.length === 1 ? 'player' : 'players'}`}</span>
               <span>{sortBy === 'last_season' ? 'Last season' : 'Points'}</span>
             </div>
-            {list.length === 0 && <Empty title="Nobody found">Try a different name or filter.</Empty>}
+            {list.length === 0 &&
+              (show === 'watching' && watchIds.length === 0 ? (
+                <Empty title="Nobody on your watchlist">
+                  Tap the star on a player's page to watch him. You'll get an alert when he becomes available.
+                </Empty>
+              ) : (
+                <Empty title="Nobody found">Try a different name or filter.</Empty>
+              ))}
             {list.map((player) => (
               <PlayerLine
                 key={player.id}
                 player={player}
                 injury={{ status: player.injury_status, description: player.injury_description }}
-                meta={status(player)}
+                tags={
+                  league.watchlist.has(player.id) && (
+                    <span className="watch-mark" title="On your watchlist">
+                      <StarIcon filled />
+                    </span>
+                  )
+                }
+                meta={
+                  <>
+                    {status(player)}
+                    {gamesAhead(player)}
+                  </>
+                }
                 onOpen={() => setOpen(player.id)}
                 right={
                   <>

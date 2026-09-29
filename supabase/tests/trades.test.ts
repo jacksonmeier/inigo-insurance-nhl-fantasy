@@ -275,3 +275,99 @@ describe('the commissioner', () => {
     )
   })
 })
+
+describe('counter-offers', () => {
+  /** Team B answers Team A's offer (F1 for F2) by asking for D4 as well, and adding D3. */
+  const counter = (id: string, give = [F(2), D(3)], receive = [F(1), D(4)], from: TeamKey = 'b') =>
+    league.rpc<string>(OWNERS[from], 'counter_trade', {
+      p_trade_id: id,
+      p_give_player_ids: give,
+      p_receive_player_ids: receive,
+      p_message: 'How about this?',
+    })
+
+  const offer = async (id: string) =>
+    (
+      await league.query<{
+        status: string; proposing: string; receiving: string; countered: string | null; message: string | null
+      }>(
+        `select status, proposing_team_id as proposing, receiving_team_id as receiving,
+                countered_trade_id as countered, message
+         from public.trades where id = $1`,
+        [id],
+      )
+    )[0]
+
+  const moving = (id: string) =>
+    league.query<{ player_id: number; from_team_id: string }>(
+      `select player_id::int as player_id, from_team_id from public.trade_players where trade_id = $1 order by player_id`,
+      [id],
+    )
+
+  it('close the offer and send a new one back the other way', async () => {
+    const id = await propose()
+    const counterId = await counter(id)
+
+    expect((await trade(id)).status).toBe('countered')
+    expect(await offer(counterId)).toEqual({
+      status: 'proposed', proposing: TEAMS.b, receiving: TEAMS.a, countered: id, message: 'How about this?',
+    })
+    expect(await moving(counterId)).toEqual([
+      { player_id: F(1), from_team_id: TEAMS.a },
+      { player_id: F(2), from_team_id: TEAMS.b },
+      { player_id: D(3), from_team_id: TEAMS.b },
+      { player_id: D(4), from_team_id: TEAMS.a },
+    ])
+    expect((await alertsFor(league, 'a')).at(-1)).toEqual({
+      type: 'trade_response_needed',
+      message:
+        'Team B countered your offer: Team B gets Forward F1 (L, EDM), Defender D4 (D, TOR); '
+        + 'Team A gets Forward F2 (R, EDM), Defender D3 (D, TOR).',
+    })
+    expect(await league.queryAs(OWNERS.c, `select countered_trade_id from public.trade_details where id = $1`, [counterId]))
+      .toEqual([{ countered_trade_id: id }])
+    // Nothing moves until someone accepts.
+    expect(await ids('a')).toContain(F(1))
+  })
+
+  it('go through like any offer once accepted', async () => {
+    const counterId = await counter(await propose())
+    await league.rpc(OWNERS.a, 'respond_to_trade', { p_trade_id: counterId, p_accept: true })
+    await closeVetoWindows()
+    await league.service('process_windows')
+
+    expect((await trade(counterId)).status).toBe('completed')
+    expect(await ids('a')).toEqual([F(2), F(8), F(9), D(3), D(5), G(4)])
+    expect(await ids('b')).toEqual([F(1), F(7), F(10), D(4), D(6), G(3)])
+  })
+
+  it('can themselves be countered, or withdrawn', async () => {
+    const counterId = await counter(await propose())
+    const again = await counter(counterId, [F(1)], [F(2)], 'a')
+    expect((await trade(counterId)).status).toBe('countered')
+    expect(await offer(again)).toMatchObject({ status: 'proposed', proposing: TEAMS.a, countered: counterId })
+
+    await league.rpc(OWNERS.a, 'withdraw_trade', { p_trade_id: again })
+    expect((await trade(again)).status).toBe('withdrawn')
+  })
+
+  it('are only for the owner the offer went to, while it is open', async () => {
+    const id = await propose()
+    await expectError(counter(id, [F(3)], [F(1)], 'c'), /isn't yours to answer/)
+    await expectError(counter(id, [F(1)], [F(2)], 'a'), /isn't yours to answer/)
+
+    await league.rpc(OWNERS.b, 'respond_to_trade', { p_trade_id: id, p_accept: false })
+    await expectError(counter(id), /no longer open/)
+  })
+
+  it('must change something and still fit both rosters', async () => {
+    const id = await propose()
+    await expectError(counter(id, [F(2)], [F(1)]), /That's the trade you were offered. Accept it instead./)
+    await expectError(counter(id, [F(2)], [F(1), D(4)]), /Team B would have too many D \(3, limit 2\)/)
+    await expectError(counter(id, [F(2)], [F(3)]), /Forward F3 \(C, EDM\) is no longer on Team A/)
+
+    // A refused counter leaves the offer open and creates nothing.
+    expect((await trade(id)).status).toBe('proposed')
+    expect(await league.query(`select 1 from public.trades`)).toHaveLength(1)
+  })
+})

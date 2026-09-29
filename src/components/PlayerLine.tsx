@@ -9,6 +9,8 @@ type Props = {
   tags?: ReactNode
   /** The second line. Defaults to position, team and number. */
   meta?: ReactNode
+  /** An optional third line, e.g. tonight's stats. */
+  detail?: ReactNode
   /** Points, a button, or both. */
   right?: ReactNode
   /** Opens the player's details. */
@@ -16,7 +18,7 @@ type Props = {
 }
 
 /** One player in a list: face, name, a line of detail, and something on the right. */
-export default function PlayerLine({ player, injury, tags, meta, right, onOpen }: Props) {
+export default function PlayerLine({ player, injury, tags, meta, detail, right, onOpen }: Props) {
   const details = (
     <>
       <Avatar name={player.full_name} src={player.headshot_url} />
@@ -32,6 +34,7 @@ export default function PlayerLine({ player, injury, tags, meta, right, onOpen }
           {player.sweater_number != null && <span className="dim">#{player.sweater_number}</span>}
           {meta}
         </span>
+        {detail && <span className="player-detail">{detail}</span>}
       </span>
     </>
   )

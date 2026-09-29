@@ -9,11 +9,13 @@ import ActivityPage from './pages/ActivityPage.tsx'
 import AlertsPage from './pages/AlertsPage.tsx'
 import CommissionerPage from './pages/CommissionerPage.tsx'
 import DraftPage from './pages/DraftPage.tsx'
+import HistoryPage from './pages/HistoryPage.tsx'
 import LeaderboardPage from './pages/LeaderboardPage.tsx'
 import LoginPage from './pages/LoginPage.tsx'
 import NotMemberPage from './pages/NotMemberPage.tsx'
 import PlayersPage from './pages/PlayersPage.tsx'
 import TeamPage from './pages/TeamPage.tsx'
+import TonightPage from './pages/TonightPage.tsx'
 import TradesPage from './pages/TradesPage.tsx'
 
 // Hash routing (#/team/...) so deep links work on GitHub Pages without
@@ -23,6 +25,8 @@ const router = createHashRouter([
     element: <Layout />,
     children: [
       { index: true, element: <LeaderboardPage /> },
+      { path: 'tonight', element: <TonightPage /> },
+      { path: 'history', element: <HistoryPage /> },
       { path: 'team', element: <TeamPage /> },
       { path: 'team/:teamId', element: <TeamPage /> },
       { path: 'players', element: <PlayersPage /> },

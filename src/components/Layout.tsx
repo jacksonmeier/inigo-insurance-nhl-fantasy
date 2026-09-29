@@ -1,8 +1,10 @@
 import { LEAGUE } from '@shared/league.config.ts'
 import { Link, NavLink, Outlet } from 'react-router-dom'
+import { fetchTodaysGames } from '../lib/api.ts'
 import { useAuth } from '../lib/auth.tsx'
+import { isLive } from '../lib/format.ts'
 import { useLeague } from '../lib/league.tsx'
-import { useConnected } from '../lib/live.ts'
+import { useConnected, useLive } from '../lib/live.ts'
 import { teamOnClock } from '../lib/rules.ts'
 import { ActivityIcon, BellIcon, PlayersIcon, StandingsIcon, TeamIcon, TradesIcon, UserIcon, WhistleIcon } from './Icons.tsx'
 
@@ -18,6 +20,9 @@ export default function Layout() {
   const { isCommissioner } = useAuth()
   const league = useLeague()
   const connected = useConnected()
+  // Once the season is on, the spot the draft used goes to tonight's games.
+  const games = useLive(fetchTodaysGames, [], ['games'], { paused: !league.seasonOpen })
+  const liveNow = (games.data ?? []).some((game) => isLive(game.game_state))
 
   const draft = league.draft
   const drafting = draft?.status === 'in_progress' || draft?.status === 'paused'
@@ -34,7 +39,16 @@ export default function Layout() {
           <span>{LEAGUE.name}</span>
         </Link>
 
-        {!league.seasonOpen && (
+        {league.seasonOpen ? (
+          <NavLink
+            to="/tonight"
+            className={({ isActive }) => `topbar-link ${isActive ? 'active' : ''}`}
+            aria-label={liveNow ? 'Tonight, games live now' : 'Tonight'}
+          >
+            {liveNow && <i className="live-dot" />}
+            Tonight
+          </NavLink>
+        ) : (
           <NavLink to="/draft" className={({ isActive }) => `topbar-link ${myPick ? 'urgent' : isActive ? 'active' : ''}`}>
             {myPick ? 'Your pick' : draft?.status === 'paused' ? 'Draft: paused' : drafting ? 'Draft: live' : 'Draft'}
           </NavLink>

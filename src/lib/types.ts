@@ -130,7 +130,8 @@ export type DraftPick = PlayerBasics & {
   picked_at: string
 }
 
-export type TradeStatus = 'proposed' | 'accepted' | 'rejected' | 'withdrawn' | 'vetoed' | 'completed' | 'failed'
+export type TradeStatus =
+  | 'proposed' | 'accepted' | 'rejected' | 'withdrawn' | 'vetoed' | 'completed' | 'failed' | 'countered'
 
 export type TradePlayer = PlayerBasics & { player_id: number; from_team_id: string }
 
@@ -148,6 +149,8 @@ export type Trade = {
   receiving_team_name: string
   players: TradePlayer[]
   vetoed_by_team_id: string | null
+  /** The offer this one answers, when it's a counter-offer. */
+  countered_trade_id: string | null
 }
 
 export type IrStint = {
@@ -182,6 +185,7 @@ export type Activity = {
 
 export type AlertType =
   | 'ir_eligible' | 'ir_player_healthy' | 'trade_response_needed' | 'trade_update' | 'waiver_processed' | 'general'
+  | 'watchlist'
 
 export type Alert = {
   id: number
@@ -260,4 +264,82 @@ export type EspnIssue = {
   matched_team: string | null
   matched_position: string | null
   status: string
+}
+
+/** One team's points on one day. Game points and commissioner adjustments are kept apart. */
+export type TeamDay = {
+  team_id: string
+  day: string
+  game_points: number
+  goals: number
+  adjustment_points: number
+}
+
+/** A player on a fantasy roster tonight, with his game (if his team plays) and his stats so far. */
+export type TonightLine = PlayerBasics & {
+  team_id: string
+  player_id: number
+  sweater_number: number | null
+  /** False for a player whose points tonight still count here but who has since left the roster. */
+  on_roster: boolean
+  game_id: number | null
+  start_time_utc: string | null
+  game_state: string | null
+  schedule_state: string | null
+  period: number | null
+  home_team: string | null
+  away_team: string | null
+  home_score: number | null
+  away_score: number | null
+  /** Whether he has a line in the boxscore: he's dressed and the game has started. */
+  has_stats: boolean
+  goals: number
+  assists: number
+  power_play_points: number
+  shorthanded_points: number
+  shots: number
+  hits: number
+  blocked_shots: number
+  decision: 'W' | 'L' | 'O' | null
+  saves: number
+  goals_against: number
+  shutout: boolean
+  points: number
+  /** The team his points tonight count for, if any. */
+  credited_team_id: string | null
+  injury_status: string | null
+  injury_description: string | null
+}
+
+/** A player's totals for a season: this one from player_season_totals, last one from player_season_stats. */
+export type SeasonTotals = {
+  player_id: number
+  season: number
+  games_played: number
+  goals: number
+  assists: number
+  power_play_points: number
+  shorthanded_points: number
+  shots: number
+  hits: number
+  blocked_shots: number
+  wins: number
+  saves: number
+  goals_against: number
+  shutouts: number
+  fantasy_points: number
+}
+
+export type UpcomingGame = {
+  id: number
+  game_date: string
+  start_time_utc: string
+  home_team: string
+  away_team: string
+  home_score: number | null
+  away_score: number | null
+  game_state: string
+  period: number | null
+  /** 0 is today (the league's day, which rolls over at 6 AM Eastern). */
+  days_away: number
 }

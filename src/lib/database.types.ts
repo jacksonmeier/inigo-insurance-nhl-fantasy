@@ -589,16 +589,28 @@ isOneToOne: false
                   ]
                 },"trades": {
                   Row: {
-                    "created_at": string,"id": string,"message": string | null,"processed_at": string | null,"proposing_team_id": string,"receiving_team_id": string,"responded_at": string | null,"status": string,"veto_deadline": string | null
+                    "countered_trade_id": string | null,"created_at": string,"id": string,"message": string | null,"processed_at": string | null,"proposing_team_id": string,"receiving_team_id": string,"responded_at": string | null,"status": string,"veto_deadline": string | null
                   }
                   Insert: {
-                    "created_at"?: string,"id"?: string,"message"?: string | null,"processed_at"?: string | null,"proposing_team_id": string,"receiving_team_id": string,"responded_at"?: string | null,"status"?: string,"veto_deadline"?: string | null
+                    "countered_trade_id"?: string | null,"created_at"?: string,"id"?: string,"message"?: string | null,"processed_at"?: string | null,"proposing_team_id": string,"receiving_team_id": string,"responded_at"?: string | null,"status"?: string,"veto_deadline"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"message"?: string | null,"processed_at"?: string | null,"proposing_team_id"?: string,"receiving_team_id"?: string,"responded_at"?: string | null,"status"?: string,"veto_deadline"?: string | null
+                    "countered_trade_id"?: string | null,"created_at"?: string,"id"?: string,"message"?: string | null,"processed_at"?: string | null,"proposing_team_id"?: string,"receiving_team_id"?: string,"responded_at"?: string | null,"status"?: string,"veto_deadline"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "trades_countered_trade_id_fkey"
+      columns: ["countered_trade_id"]
+isOneToOne: false
+      referencedRelation: "trade_details"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "trades_countered_trade_id_fkey"
+      columns: ["countered_trade_id"]
+isOneToOne: false
+      referencedRelation: "trades"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "trades_proposing_team_id_fkey"
       columns: ["proposing_team_id"]
 isOneToOne: false
@@ -763,6 +775,49 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "team_rosters"
       referencedColumns: ["player_id"]
+    }
+                  ]
+                },"watchlist": {
+                  Row: {
+                    "created_at": string,"player_id": number,"team_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"player_id": number,"team_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"player_id"?: number,"team_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "watchlist_player_id_fkey"
+      columns: ["player_id"]
+isOneToOne: false
+      referencedRelation: "player_pool"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "watchlist_player_id_fkey"
+      columns: ["player_id"]
+isOneToOne: false
+      referencedRelation: "players"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "watchlist_player_id_fkey"
+      columns: ["player_id"]
+isOneToOne: false
+      referencedRelation: "team_rosters"
+      referencedColumns: ["player_id"]
+    },{
+      foreignKeyName: "watchlist_team_id_fkey"
+      columns: ["team_id"]
+isOneToOne: false
+      referencedRelation: "team_standings"
+      referencedColumns: ["team_id"]
+    },{
+      foreignKeyName: "watchlist_team_id_fkey"
+      columns: ["team_id"]
+isOneToOne: false
+      referencedRelation: "teams"
+      referencedColumns: ["id"]
     }
                   ]
                 }
@@ -996,6 +1051,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"player_season_totals": {
+                  Row: {
+                    "assists": number | null,"blocked_shots": number | null,"fantasy_points": number | null,"games_played": number | null,"goals": number | null,"goals_against": number | null,"hits": number | null,"player_id": number | null,"power_play_points": number | null,"saves": number | null,"season": number | null,"shorthanded_points": number | null,"shots": number | null,"shutouts": number | null,"wins": number | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"team_daily_points": {
+                  Row: {
+                    "adjustment_points": number | null,"day": string | null,"game_points": number | null,"goals": number | null,"team_id": string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"team_rosters": {
                   Row: {
                     "first_name": string | null,"full_name": string | null,"headshot_url": string | null,"injury_description": string | null,"injury_status": string | null,"is_active": boolean | null,"is_ir_eligible": boolean | null,"is_ir_replacement": boolean | null,"last_name": string | null,"last_season_points": number | null,"next_game_away": string | null,"next_game_home": string | null,"next_game_id": number | null,"next_game_period": number | null,"next_game_start": string | null,"next_game_state": string | null,"nhl_team": string | null,"player_id": number | null,"position": string | null,"position_group": string | null,"reason": string | null,"roster_entry_id": string | null,"season_games": number | null,"season_points": number | null,"slot": string | null,"start_at": string | null,"sweater_number": number | null,"team_id": string | null,"team_points": number | null,"today_game_id": number | null,"today_points": number | null
@@ -1035,9 +1104,16 @@ isOneToOne: false
                         Relationships: [
                     
                   ]
+                },"tonight_lines": {
+                  Row: {
+                    "assists": number | null,"away_score": number | null,"away_team": string | null,"blocked_shots": number | null,"credited_team_id": string | null,"decision": string | null,"full_name": string | null,"game_id": number | null,"game_state": string | null,"goals": number | null,"goals_against": number | null,"has_stats": boolean | null,"headshot_url": string | null,"hits": number | null,"home_score": number | null,"home_team": string | null,"injury_description": string | null,"injury_status": string | null,"nhl_team": string | null,"on_roster": boolean | null,"period": number | null,"player_id": number | null,"points": number | null,"position": string | null,"position_group": string | null,"power_play_points": number | null,"saves": number | null,"schedule_state": string | null,"shorthanded_points": number | null,"shots": number | null,"shutout": boolean | null,"start_time_utc": string | null,"sweater_number": number | null,"team_id": string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"trade_details": {
                   Row: {
-                    "created_at": string | null,"id": string | null,"message": string | null,"players": Json | null,"processed_at": string | null,"proposing_team_id": string | null,"proposing_team_name": string | null,"receiving_team_id": string | null,"receiving_team_name": string | null,"responded_at": string | null,"status": string | null,"veto_deadline": string | null,"vetoed_by_team_id": string | null
+                    "countered_trade_id": string | null,"created_at": string | null,"id": string | null,"message": string | null,"players": Json | null,"processed_at": string | null,"proposing_team_id": string | null,"proposing_team_name": string | null,"receiving_team_id": string | null,"receiving_team_name": string | null,"responded_at": string | null,"status": string | null,"veto_deadline": string | null,"vetoed_by_team_id": string | null
                   }
                   Relationships: [
                     {
@@ -1065,6 +1141,13 @@ isOneToOne: false
       referencedRelation: "teams"
       referencedColumns: ["id"]
     }
+                  ]
+                },"upcoming_games": {
+                  Row: {
+                    "away_score": number | null,"away_team": string | null,"days_away": number | null,"game_date": string | null,"game_state": string | null,"home_score": number | null,"home_team": string | null,"id": number | null,"period": number | null,"start_time_utc": string | null
+                  }
+                  Relationships: [
+                    
                   ]
                 },"waiver_wire": {
                   Row: {
@@ -1160,6 +1243,9 @@ isOneToOne: false
                            },
 "commish_remove_from_roster":
 { Args: { "p_effective_at"?: string,"p_note"?: string,"p_player_id": number,"p_to_waivers"?: boolean }; Returns: undefined
+                           },
+"counter_trade":
+{ Args: { "p_give_player_ids": (number)[],"p_message"?: string,"p_receive_player_ids": (number)[],"p_trade_id": string }; Returns: string
                            },
 "draft_auto_pick":
 { Args: Record<PropertyKey, never>; Returns: boolean
@@ -1298,8 +1384,14 @@ isOneToOne: false
 "sync_context":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"unwatch_player":
+{ Args: { "p_player_id": number }; Returns: undefined
+                           },
 "veto_trade":
 { Args: { "p_trade_id": string }; Returns: undefined
+                           },
+"watch_player":
+{ Args: { "p_player_id": number }; Returns: undefined
                            },
 "withdraw_trade":
 { Args: { "p_trade_id": string }; Returns: undefined

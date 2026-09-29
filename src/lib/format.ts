@@ -66,6 +66,21 @@ export function formatGameDate(date: string) {
   return dateOnly.format(new Date(year, month - 1, day))
 }
 
+const weekdayAndDate = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+const monthOnly = new Intl.DateTimeFormat(undefined, { month: 'short' })
+
+/** A game date with its weekday: "Tue, Oct 14". */
+export function formatGameDay(date: string) {
+  const [year, month, day] = date.split('-').map(Number)
+  return weekdayAndDate.format(new Date(year, month - 1, day))
+}
+
+/** The month of a game date: "Oct". */
+export function formatGameMonth(date: string) {
+  const [year, month] = date.split('-').map(Number)
+  return monthOnly.format(new Date(year, month - 1, 1))
+}
+
 const isToday = (date: Date, now: Date) => date.toDateString() === now.toDateString()
 
 /** When a game starts: "7:00 PM" today, "Tue 7:00 PM" otherwise. */

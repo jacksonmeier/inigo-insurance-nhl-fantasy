@@ -82,7 +82,8 @@ describe('function privileges', () => {
       `public.keep_ir_replacement(101)`, `public.draft_pick(101)`, `public.draft_auto_pick()`,
       `public.propose_trade(gen_random_uuid(), '{101}', '{102}')`,
       `public.respond_to_trade(gen_random_uuid(), true)`, `public.withdraw_trade(gen_random_uuid())`,
-      `public.veto_trade(gen_random_uuid())`,
+      `public.veto_trade(gen_random_uuid())`, `public.counter_trade(gen_random_uuid(), '{101}', '{102}')`,
+      `public.watch_player(101)`, `public.unwatch_player(101)`,
     ]
     for (const call of ownerActions) {
       await expectError(league.queryAs(STRANGER, `select ${call}`), /don't have a team|Only league members/)

@@ -122,6 +122,12 @@ export const CrossIcon = (props: IconProps) => (
   </Svg>
 )
 
+export const StarIcon = ({ filled, ...props }: IconProps & { filled?: boolean }) => (
+  <Svg {...props} fill={filled ? 'currentColor' : 'none'}>
+    <path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9Z" />
+  </Svg>
+)
+
 export const PickIcon = (props: IconProps) => (
   <Svg {...props}>
     <path d="M12 3v12M7 10l5 5 5-5M5 21h14" />

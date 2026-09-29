@@ -62,8 +62,16 @@ function PlayerChecklist({ title, players, chosen, onToggle }: {
   )
 }
 
-function TradeBuilder({ initialTeam, rosters, onClose }: {
+/** The players on one side of a trade, as a set of ids. */
+const sideOf = (trade: Trade, fromTeamId: string | null) =>
+  new Set(trade.players.filter((player) => player.from_team_id === fromTeamId).map((player) => player.player_id))
+
+const sameIds = (a: Set<number>, b: Set<number>) => a.size === b.size && [...a].every((id) => b.has(id))
+
+function TradeBuilder({ initialTeam, counter, rosters, onClose }: {
   initialTeam: string | null
+  /** The offer being answered with a counter-offer, if that's what this is. */
+  counter: Trade | null
   rosters: RosterPlayer[]
   onClose: () => void
 }) {
@@ -72,10 +80,14 @@ function TradeBuilder({ initialTeam, rosters, onClose }: {
   const others = league.teams.filter((team) => team.id !== league.myTeamId)
 
   const [partner, setPartner] = useState(
-    initialTeam && others.some((team) => team.id === initialTeam) ? initialTeam : (others[0]?.id ?? ''),
+    counter?.proposing_team_id
+      ?? (initialTeam && others.some((team) => team.id === initialTeam) ? initialTeam : (others[0]?.id ?? '')),
   )
-  const [give, setGive] = useState<Set<number>>(new Set())
-  const [receive, setReceive] = useState<Set<number>>(new Set())
+  // A counter-offer starts from the offer it answers.
+  const [give, setGive] = useState<Set<number>>(() => (counter ? sideOf(counter, league.myTeamId) : new Set()))
+  const [receive, setReceive] = useState<Set<number>>(() =>
+    counter ? sideOf(counter, counter.proposing_team_id) : new Set(),
+  )
   const [message, setMessage] = useState('')
 
   const byGroup = (a: RosterPlayer, b: RosterPlayer) =>
@@ -89,55 +101,71 @@ function TradeBuilder({ initialTeam, rosters, onClose }: {
     update(next)
   }
 
+  // Only players still on the rosters: one may have moved since an offer was made.
   const giving = mine.filter((p) => give.has(p.player_id))
   const receiving = theirs.filter((p) => receive.has(p.player_id))
-  const problem = tradeProblem(
-    { name: league.teamName(league.myTeamId), roster: mine },
-    { name: league.teamName(partner), roster: theirs },
-    giving,
-    receiving,
-  )
+  const unchanged =
+    counter !== null
+    && sameIds(new Set(giving.map((p) => p.player_id)), sideOf(counter, league.myTeamId))
+    && sameIds(new Set(receiving.map((p) => p.player_id)), sideOf(counter, counter.proposing_team_id))
+  const problem = unchanged
+    ? 'Change something first, or accept the offer as it is.'
+    : tradeProblem(
+      { name: league.teamName(league.myTeamId), roster: mine },
+      { name: league.teamName(partner), roster: theirs },
+      giving,
+      receiving,
+    )
 
-  const propose = async () => {
+  const send = async () => {
+    const players = {
+      p_give_player_ids: giving.map((p) => p.player_id),
+      p_receive_player_ids: receiving.map((p) => p.player_id),
+      p_message: message,
+    }
     const sent = await run(
       () =>
-        call('propose_trade', {
-          p_receiving_team_id: partner,
-          p_give_player_ids: [...give],
-          p_receive_player_ids: [...receive],
-          p_message: message,
-        }),
-      `Offer sent to ${league.teamName(partner)}.`,
+        counter
+          ? call('counter_trade', { p_trade_id: counter.id, ...players })
+          : call('propose_trade', { p_receiving_team_id: partner, ...players }),
+      counter ? `Counter-offer sent to ${league.teamName(partner)}.` : `Offer sent to ${league.teamName(partner)}.`,
     )
     if (sent) onClose()
   }
 
+  const title = counter ? 'Make a counter-offer' : 'Propose a trade'
+
   return (
-    <Sheet title="Propose a trade" onClose={onClose}>
-      <h3>Propose a trade</h3>
+    <Sheet title={title} onClose={onClose}>
+      <h3>{title}</h3>
       <p className="muted fine">
+        {counter
+          ? `Change what goes each way. This replaces ${league.teamName(partner)}'s offer, and they can accept it, reject it or counter again. `
+          : ''}
         Both rosters have to stay within {LEAGUE.roster.F} F, {LEAGUE.roster.D} D and {LEAGUE.roster.G} G, so trade
         like for like. Once accepted, the other owners have {LEAGUE.windows.tradeVetoHours} hours to veto.
       </p>
 
       <div className="stack">
-        <div>
-          <label htmlFor="partner">Trade with</label>
-          <select
-            id="partner"
-            value={partner}
-            onChange={(e) => {
-              setPartner(e.target.value)
-              setReceive(new Set())
-            }}
-          >
-            {others.map((team) => (
-              <option key={team.id} value={team.id}>
-                {team.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {!counter && (
+          <div>
+            <label htmlFor="partner">Trade with</label>
+            <select
+              id="partner"
+              value={partner}
+              onChange={(e) => {
+                setPartner(e.target.value)
+                setReceive(new Set())
+              }}
+            >
+              {others.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <PlayerChecklist title="You give" players={mine} chosen={give} onToggle={toggle(give, setGive)} />
         <PlayerChecklist
@@ -152,15 +180,17 @@ function TradeBuilder({ initialTeam, rosters, onClose }: {
           <input id="message" value={message} maxLength={200} onChange={(e) => setMessage(e.target.value)} />
         </div>
 
-        {problem && give.size + receive.size > 0 && <div className="notice warn">{problem}</div>}
+        {problem && give.size + receive.size > 0 && (
+          <div className={unchanged ? 'notice' : 'notice warn'}>{problem}</div>
+        )}
       </div>
 
       <div className="sheet-actions">
         <button type="button" className="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </button>
-        <button type="button" disabled={busy || problem !== null} onClick={propose}>
-          {busy ? 'Sending…' : 'Send offer'}
+        <button type="button" disabled={busy || problem !== null} onClick={send}>
+          {busy ? 'Sending…' : counter ? 'Send counter-offer' : 'Send offer'}
         </button>
       </div>
     </Sheet>
@@ -183,6 +213,8 @@ function statusLine(trade: Trade, now: number, teamName: (id: string | null) => 
       return `Completed ${formatDateTime(trade.processed_at ?? trade.created_at)}.`
     case 'rejected':
       return `${trade.receiving_team_name} said no.`
+    case 'countered':
+      return `${trade.receiving_team_name} answered with a counter-offer.`
     case 'withdrawn':
       return `${trade.proposing_team_name} withdrew the offer.`
     case 'vetoed':
@@ -192,7 +224,7 @@ function statusLine(trade: Trade, now: number, teamName: (id: string | null) => 
   }
 }
 
-function TradeCard({ trade }: { trade: Trade }) {
+function TradeCard({ trade, onCounter }: { trade: Trade; onCounter: (trade: Trade) => void }) {
   const league = useLeague()
   const { run, busy } = useAction()
   const now = useNow(30_000)
@@ -230,6 +262,11 @@ function TradeCard({ trade }: { trade: Trade }) {
 
   return (
     <div className="card stack" style={{ opacity: open ? 1 : 0.75 }}>
+      {trade.countered_trade_id && (
+        <div className="row">
+          <span className="tag">Counter-offer</span>
+        </div>
+      )}
       <div className="swap">
         {side(trade.proposing_team_id, trade.proposing_team_name)}
         {side(trade.receiving_team_id, trade.receiving_team_name)}
@@ -242,6 +279,9 @@ function TradeCard({ trade }: { trade: Trade }) {
         <div className="row">
           <button type="button" className="ghost grow" disabled={busy} onClick={() => setAsking('reject')}>
             Reject
+          </button>
+          <button type="button" className="quiet grow" disabled={busy} onClick={() => onCounter(trade)}>
+            Counter
           </button>
           <button type="button" className="grow" disabled={busy} onClick={() => setAsking('accept')}>
             Accept
@@ -299,10 +339,11 @@ export default function TradesPage() {
   const league = useLeague()
   const [params, setParams] = useSearchParams()
   const withTeam = params.get('with')
-  const [building, setBuilding] = useState(withTeam !== null)
+  // The trade builder, when it's open: a new offer, or a counter to one.
+  const [building, setBuilding] = useState<{ counter: Trade | null } | null>(withTeam !== null ? { counter: null } : null)
 
   const trades = useLive(() => fetchTrades(), [], TRADE_TABLES)
-  const rosters = useLive(fetchAllRosters, [], ['roster_entries', 'player_injuries'], { paused: !building })
+  const rosters = useLive(fetchAllRosters, [], ['roster_entries', 'player_injuries'], { paused: building === null })
 
   const groups = useMemo(() => {
     const all = trades.data ?? []
@@ -316,9 +357,11 @@ export default function TradesPage() {
   }, [trades.data, league.myTeamId])
 
   const closeBuilder = () => {
-    setBuilding(false)
+    setBuilding(null)
     if (withTeam) setParams({}, { replace: true })
   }
+
+  const counter = (trade: Trade) => setBuilding({ counter: trade })
 
   return (
     <section>
@@ -328,7 +371,7 @@ export default function TradesPage() {
         <div className="notice" style={{ marginBottom: 12 }}>Trading opens when the draft is complete.</div>
       ) : (
         league.myTeamId && (
-          <button type="button" className="wide" style={{ marginBottom: 14 }} onClick={() => setBuilding(true)}>
+          <button type="button" className="wide" style={{ marginBottom: 14 }} onClick={() => setBuilding({ counter: null })}>
             Propose a trade
           </button>
         )
@@ -340,25 +383,25 @@ export default function TradesPage() {
             {groups.answer.length > 0 && (
               <>
                 <h2>Needs your answer</h2>
-                {groups.answer.map((trade) => <TradeCard key={trade.id} trade={trade} />)}
+                {groups.answer.map((trade) => <TradeCard key={trade.id} trade={trade} onCounter={counter} />)}
               </>
             )}
             {groups.pending.length > 0 && (
               <>
                 <h2>In the veto window</h2>
-                {groups.pending.map((trade) => <TradeCard key={trade.id} trade={trade} />)}
+                {groups.pending.map((trade) => <TradeCard key={trade.id} trade={trade} onCounter={counter} />)}
               </>
             )}
             {groups.sent.length > 0 && (
               <>
                 <h2>Waiting for an answer</h2>
-                {groups.sent.map((trade) => <TradeCard key={trade.id} trade={trade} />)}
+                {groups.sent.map((trade) => <TradeCard key={trade.id} trade={trade} onCounter={counter} />)}
               </>
             )}
             {groups.done.length > 0 && (
               <>
                 <h2>Earlier</h2>
-                {groups.done.map((trade) => <TradeCard key={trade.id} trade={trade} />)}
+                {groups.done.map((trade) => <TradeCard key={trade.id} trade={trade} onCounter={counter} />)}
               </>
             )}
             {(trades.data ?? []).length === 0 && (
@@ -372,7 +415,12 @@ export default function TradesPage() {
 
       {building &&
         (rosters.data ? (
-          <TradeBuilder initialTeam={withTeam} rosters={rosters.data} onClose={closeBuilder} />
+          <TradeBuilder
+            initialTeam={withTeam}
+            counter={building.counter}
+            rosters={rosters.data}
+            onClose={closeBuilder}
+          />
         ) : (
           <Sheet title="Propose a trade" onClose={closeBuilder}>
             <Loaded live={rosters}>{() => null}</Loaded>

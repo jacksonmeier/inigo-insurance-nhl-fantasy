@@ -1,12 +1,15 @@
 import { LEAGUE } from '@shared/league.config.ts'
 import { Link } from 'react-router-dom'
+import GameStrip from '../components/GameStrip.tsx'
 import Points from '../components/Points.tsx'
+import RaceChart from '../components/RaceChart.tsx'
 import { Avatar, Empty, Loaded } from '../components/ui.tsx'
 import { fetchStandings, fetchTodaysGames, fetchWeekScorers } from '../lib/api.ts'
-import { gameStatus, isFinal, isLive, points, signed } from '../lib/format.ts'
+import { isLive, points, signed } from '../lib/format.ts'
 import { useLeague } from '../lib/league.tsx'
 import { useLive } from '../lib/live.ts'
 import { teamOnClock } from '../lib/rules.ts'
+import { describeRace, nightLabel, teamNames, useSeasonHistory } from '../lib/season.ts'
 import type { Game, Standing, WeekScorer } from '../lib/types.ts'
 
 const SCORES = ['player_game_points', 'point_adjustments', 'roster_entries', 'teams']
@@ -44,33 +47,49 @@ function DraftBanner() {
 }
 
 function Games({ games }: { games: Game[] }) {
+  const league = useLeague()
   if (games.length === 0) return null
   const live = games.filter((game) => isLive(game.game_state)).length
 
   return (
     <>
       <h2>
-        Tonight{live > 0 && <span className="tag live" style={{ marginLeft: 10, verticalAlign: 'middle' }}>{live} live</span>}
+        Tonight{live > 0 && <span className="tag live">{live} live</span>}
+        {league.seasonOpen && <Link to="/tonight" className="section-link">Who's playing</Link>}
       </h2>
-      <div className="games">
-        {games.map((game) => {
-          const started = isLive(game.game_state) || isFinal(game.game_state)
-          return (
-            <div key={game.id} className={isLive(game.game_state) ? 'game live' : 'game'}>
-              <div className="side">
-                <span>{game.away_team}</span>
-                <b>{started ? (game.away_score ?? 0) : ''}</b>
-              </div>
-              <div className="side">
-                <span>{game.home_team}</span>
-                <b>{started ? (game.home_score ?? 0) : ''}</b>
-              </div>
-              <div className="when">{gameStatus(game)}</div>
-            </div>
-          )
-        })}
-      </div>
+      <GameStrip games={games} />
     </>
+  )
+}
+
+/** The race so far in a small chart, and who won last night. */
+function RaceCard() {
+  const { today, season } = useSeasonHistory()
+  const league = useLeague()
+  if (!season || season.days.length < 2) return null
+
+  const lastNight = season.nights.find((night) => night.final && night.winners.length > 0)
+
+  return (
+    <div className="card">
+      <div className="row between" style={{ marginBottom: 10 }}>
+        <div className="eyebrow" style={{ margin: 0 }}>The race</div>
+        <Link to="/history" className="section-link">Season history</Link>
+      </div>
+      <RaceChart
+        days={season.days}
+        lines={season.lines}
+        height={170}
+        today={today}
+        label={`Season points by day. ${describeRace(season.lines)}`}
+      />
+      {lastNight && (
+        <p className="fine muted" style={{ margin: '10px 0 0' }}>
+          {nightLabel(lastNight.start, today)}: {teamNames(lastNight.winners, league.teamName)}{' '}
+          {lastNight.winners.length > 1 ? 'tied for the most points' : 'won the night'} with {points(lastNight.best)}.
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -158,6 +177,7 @@ export default function LeaderboardPage() {
         <p className="fine dim">Ties are broken by goals scored by a team's players while on its roster.</p>
       )}
 
+      {league.seasonOpen && <RaceCard />}
       {scorers.data && <TopScorer scorers={scorers.data} />}
       {games.data && <Games games={games.data} />}
     </section>

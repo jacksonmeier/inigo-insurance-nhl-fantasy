@@ -4,7 +4,7 @@
 
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react'
 import {
-  fetchAlerts, fetchDraft, fetchIrStints, fetchPendingClaims, fetchRoster, fetchSeason, fetchTeams,
+  fetchAlerts, fetchDraft, fetchIrStints, fetchPendingClaims, fetchRoster, fetchSeason, fetchTeams, fetchWatchlist,
 } from './api.ts'
 import { useAuth } from './auth.tsx'
 import { useLive } from './live.ts'
@@ -22,6 +22,8 @@ type League = {
   myTeamId: string | null
   myRoster: RosterPlayer[]
   myClaims: WaiverClaim[]
+  /** Players on the signed-in owner's watchlist. */
+  watchlist: ReadonlySet<number>
   irStints: IrStint[]
   alerts: Alert[]
   unreadAlerts: number
@@ -48,6 +50,11 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     ['roster_entries', 'player_game_points', 'player_injuries', 'games', 'ir_stints'],
   )
   const myClaims = useLive(fetchPendingClaims, [myTeamId], ['waiver_claims', 'waivers'])
+  const watchlist = useLive(
+    () => (myTeamId ? fetchWatchlist() : Promise.resolve([])),
+    [myTeamId],
+    ['watchlist'],
+  )
   const alerts = useLive(
     () => (myTeamId ? fetchAlerts(myTeamId) : Promise.resolve([])),
     [myTeamId],
@@ -73,6 +80,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
       myRoster: myRoster.data ?? NONE,
       // Claims come back for every team when the commissioner asks.
       myClaims: (myClaims.data ?? NONE).filter((claim) => claim.team_id === myTeamId),
+      watchlist: new Set(watchlist.data ?? NONE),
       irStints: irStints.data ?? NONE,
       alerts: alertList,
       unreadAlerts: alertList.filter((alert) => !alert.read_at).length,
@@ -80,7 +88,7 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     }
   }, [
     alerts.data, alerts.refresh, draft.data, irStints.data, myClaims.data, myRoster.data, myTeamId,
-    settings.data, teamList, teamName, teams.data,
+    settings.data, teamList, teamName, teams.data, watchlist.data,
   ])
 
   return <LeagueContext.Provider value={value}>{children}</LeagueContext.Provider>

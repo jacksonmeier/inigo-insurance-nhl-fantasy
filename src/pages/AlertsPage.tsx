@@ -13,6 +13,7 @@ const WHERE: Record<AlertType, { to: string; label: string } | null> = {
   trade_response_needed: { to: '/trades', label: 'See the offer' },
   trade_update: { to: '/trades', label: 'See trades' },
   waiver_processed: { to: '/team', label: 'Go to my team' },
+  watchlist: { to: '/players?show=watching', label: 'See my watchlist' },
   general: null,
 }
 
