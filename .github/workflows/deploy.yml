@@ -30,22 +30,13 @@ jobs:
       - run: npm run lint
       - run: npm test
 
-      # Public values only (they end up in the browser bundle). Set them under
-      # Settings > Secrets and variables > Actions > Variables.
-      - name: Check Supabase variables are set
-        env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
-        run: |
-          if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
-            echo "::error::Set the VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY repository variables (Settings > Secrets and variables > Actions > Variables)."
-            exit 1
-          fi
-
+      # The hosted Supabase project. Both values are public: they end up in the
+      # browser bundle, and row-level security is what protects the data. The
+      # key is the project's publishable key (Project Settings > API Keys).
       - name: Build
         env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: https://rlxqdonkaznusyqgqlya.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_-dSibkISZDJUOa9H7LB3SA_OQQWh4Fk
         run: npm run build
 
       - uses: actions/configure-pages@v6

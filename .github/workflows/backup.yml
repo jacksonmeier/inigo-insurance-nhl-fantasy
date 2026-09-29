@@ -1,0 +1,56 @@
+name: Weekly backup
+
+# Supabase's free plan has no backups, so this exports the hosted database
+# once a week. The repo is public and so are its workflow artifacts, which is
+# why the export is encrypted before it's uploaded.
+#
+# Needs two repository secrets (Settings > Secrets and variables > Actions):
+#   SUPABASE_DB_URL     the database connection string (Session pooler)
+#   BACKUP_PASSPHRASE   any long passphrase; you need it to open a backup
+#
+# To open a backup: download the artifact, then
+#   gpg --decrypt league.sql.gpg > league.sql
+
+on:
+  schedule:
+    - cron: '0 11 * * 1' # Mondays, 11:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Check the secrets are set
+        id: check
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::notice::SUPABASE_DB_URL and BACKUP_PASSPHRASE aren't set, so there's nothing to back up yet."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: supabase/setup-cli@v3
+        if: steps.check.outputs.ready == 'true'
+        with:
+          version: latest
+
+      - name: Export and encrypt
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          supabase db dump --db-url "$SUPABASE_DB_URL" --data-only --schema public,auth -f league.sql
+          gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" league.sql
+          rm league.sql
+
+      - uses: actions/upload-artifact@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          name: league-backup-${{ github.run_id }}
+          path: league.sql.gpg
+          retention-days: 90

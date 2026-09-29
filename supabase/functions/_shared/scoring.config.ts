@@ -20,4 +20,8 @@ export const SCORING = {
   },
 } as const;
 
-export type ScoringConfig = typeof SCORING;
+// The shape without the exact values, so tests can try other values.
+export type ScoringConfig = {
+  skater: Record<keyof typeof SCORING.skater, number>;
+  goalie: Record<keyof typeof SCORING.goalie, number>;
+};

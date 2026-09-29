@@ -26,3 +26,8 @@ dist-ssr
 # Local env (Supabase URL + anon key for dev)
 .env
 .env.local
+
+# Running the league on your own computer (see docs/LOCAL.md)
+league.local.json
+backups/
+supabase/functions/.env

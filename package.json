@@ -4,6 +4,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "start": "tsx scripts/start.ts",
+    "setup": "tsx scripts/setup.ts",
+    "sync": "tsx scripts/sync.ts",
+    "backup": "tsx scripts/backup.ts",
+    "restore": "tsx scripts/restore.ts",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
@@ -12,6 +17,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fontsource-variable/big-shoulders-display": "^5.3.0",
+    "@fontsource/barlow-semi-condensed": "^5.3.0",
     "@supabase/supabase-js": "^2.117.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
@@ -24,6 +31,8 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.85.0",
+    "supabase": "^2.118.0",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.1"

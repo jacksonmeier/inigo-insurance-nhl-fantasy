@@ -8,3 +8,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+// Font packages are imported for their side effect (registering the font).
+declare module '@fontsource-variable/*'

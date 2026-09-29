@@ -1,0 +1,268 @@
+{
+ "injuries": [
+  {
+   "displayName": "Anaheim Ducks",
+   "injuries": [
+    {
+     "status": "Out",
+     "date": "2026-09-26T23:02Z",
+     "shortComment": "out",
+     "details": {
+      "type": "Illness",
+      "returnDate": "2026-10-02"
+     },
+     "athlete": {
+      "firstName": "Pavel",
+      "lastName": "Mintyukov",
+      "displayName": "Pavel Mintyukov",
+      "position": {
+       "abbreviation": "D"
+      },
+      "team": {
+       "abbreviation": "ANA"
+      },
+      "links": [
+       {
+        "href": "https://www.espn.com/nhl/player/_/id/5080154"
+       }
+      ],
+      "headshot": {
+       "href": "https://a.espncdn.com/i/headshots/nhl/players/full/5080154.png"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "displayName": "Boston Bruins",
+   "injuries": [
+    {
+     "status": "Suspension",
+     "date": "2026-09-21T05:14Z",
+     "shortComment": "McAvoy logged an even-strength goal on three shots and four PIM in a game-high 28:35 of ice time during Sunday's 3-2 shootout win over the Capitals in preseason play.",
+     "details": {
+      "type": "Suspension",
+      "returnDate": "2026-10-13"
+     },
+     "athlete": {
+      "firstName": "Charlie",
+      "lastName": "McAvoy",
+      "displayName": "Charlie McAvoy",
+      "position": {
+       "abbreviation": "D"
+      },
+      "team": {
+       "abbreviation": "BOS"
+      },
+      "links": [
+       {
+        "href": "https://www.espn.com/nhl/player/_/id/3988803"
+       }
+      ],
+      "headshot": {
+       "href": "https://a.espncdn.com/i/headshots/nhl/players/full/3988803.png"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "displayName": "Buffalo Sabres",
+   "injuries": [
+    {
+     "status": "Day-To-Day",
+     "date": "2026-09-26T22:05Z",
+     "shortComment": "day-to-day",
+     "details": {
+      "type": "Lower Body",
+      "returnDate": "2026-10-01"
+     },
+     "athlete": {
+      "firstName": "Ukko-Pekka",
+      "lastName": "Luukkonen",
+      "displayName": "Ukko-Pekka Luukkonen",
+      "position": {
+       "abbreviation": "G"
+      },
+      "team": {
+       "abbreviation": "BUF"
+      },
+      "links": [
+       {
+        "href": "https://www.espn.com/nhl/player/_/id/4233889"
+       }
+      ],
+      "headshot": {
+       "href": "https://a.espncdn.com/i/headshots/nhl/players/full/4233889.png"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "displayName": "Calgary Flames",
+   "injuries": [
+    {
+     "status": "Injured Reserve",
+     "date": "2026-09-20T15:45Z",
+     "shortComment": "ir",
+     "details": {
+      "type": "Hip",
+      "returnDate": "2026-10-08"
+     },
+     "athlete": {
+      "firstName": "Jonathan",
+      "lastName": "Huberdeau",
+      "displayName": "Jonathan Huberdeau",
+      "position": {
+       "abbreviation": "LW"
+      },
+      "team": {
+       "abbreviation": "CGY"
+      },
+      "links": [
+       {
+        "href": "https://www.espn.com/nhl/player/_/id/2562606"
+       }
+      ],
+      "headshot": {
+       "href": "https://a.espncdn.com/i/headshots/nhl/players/full/2562606.png"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "displayName": "Los Angeles Kings",
+   "injuries": [
+    {
+     "status": "Day-To-Day",
+     "date": "2026-09-26T23:50Z",
+     "shortComment": "day-to-day",
+     "details": {
+      "type": "Undisclosed",
+      "returnDate": "2026-09-30"
+     },
+     "athlete": {
+      "firstName": "Joel",
+      "lastName": "Edmundson",
+      "displayName": "Joel Edmundson",
+      "position": {
+       "abbreviation": "D"
+      },
+      "team": {
+       "abbreviation": "LA"
+      },
+      "links": [
+       {
+        "href": "https://www.espn.com/nhl/player/_/id/2563034"
+       }
+      ],
+      "headshot": {
+       "href": "https://a.espncdn.com/i/headshots/nhl/players/full/2563034.png"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "displayName": "New Jersey Devils",
+   "injuries": [
+    {
+     "status": "Out",
+     "date": "2026-09-25T02:18Z",
+     "shortComment": "out",
+     "details": {
+      "type": "Knee",
+      "returnDate": "2026-10-01"
+     },
+     "athlete": {
+      "firstName": "Seamus",
+      "lastName": "Casey",
+      "displayName": "Seamus Casey",
+      "position": {
+       "abbreviation": "D"
+      },
+      "team": {
+       "abbreviation": "NJ"
+      },
+      "links": [
+       {
+        "href": "https://www.espn.com/nhl/player/_/id/5080212"
+       }
+      ],
+      "headshot": {
+       "href": "https://a.espncdn.com/i/headshots/nhl/players/full/5080212.png"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "displayName": "San Jose Sharks",
+   "injuries": [
+    {
+     "status": "Out",
+     "date": "2026-09-27T01:47Z",
+     "shortComment": "out",
+     "details": {
+      "type": "Undisclosed",
+      "returnDate": "2026-10-01"
+     },
+     "athlete": {
+      "firstName": "Alex",
+      "lastName": "Barre-Boulet",
+      "displayName": "Alex Barre-Boulet",
+      "position": {
+       "abbreviation": "C"
+      },
+      "team": {
+       "abbreviation": "SJ"
+      },
+      "links": [
+       {
+        "href": "https://www.espn.com/nhl/player/_/id/4270820"
+       }
+      ],
+      "headshot": {
+       "href": "https://a.espncdn.com/i/headshots/nhl/players/full/4270820.png"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "displayName": "Tampa Bay Lightning",
+   "injuries": [
+    {
+     "status": "Out",
+     "date": "2026-09-16T15:13Z",
+     "shortComment": "out",
+     "details": {
+      "type": "Hand",
+      "returnDate": "2026-10-13"
+     },
+     "athlete": {
+      "firstName": "Dominic",
+      "lastName": "James",
+      "displayName": "Dominic James",
+      "position": {
+       "abbreviation": "C"
+      },
+      "team": {
+       "abbreviation": "TB"
+      },
+      "links": [
+       {
+        "href": "https://www.espn.com/nhl/player/_/id/4997033"
+       }
+      ],
+      "headshot": {
+       "href": "https://a.espncdn.com/i/headshots/nhl/players/full/4997033.png"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}
