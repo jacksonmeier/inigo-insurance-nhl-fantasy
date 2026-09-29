@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 /** A panel that slides up from the bottom of the screen, over everything. */
 export default function Sheet({ title, onClose, children }: {
@@ -25,7 +26,9 @@ export default function Sheet({ title, onClose, children }: {
     }
   }, [onClose])
 
-  return (
+  // Rendered at the end of <body>: a sheet opened from inside a glass card would
+  // otherwise be boxed in by the card's blur and drawn under the tab bar.
+  return createPortal(
     <div
       className="backdrop"
       onClick={(event) => {
@@ -35,7 +38,8 @@ export default function Sheet({ title, onClose, children }: {
       <div className="sheet" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} ref={panel}>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

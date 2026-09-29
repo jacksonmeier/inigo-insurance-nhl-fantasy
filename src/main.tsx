@@ -1,4 +1,4 @@
-import '@fontsource-variable/inter'
+import '@fontsource-variable/mona-sans/wdth.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
